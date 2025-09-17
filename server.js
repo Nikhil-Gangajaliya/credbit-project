@@ -4,13 +4,14 @@ const bodyParser = require('body-parser');
 const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
-const bcryptjs = require('bcryptjs');
+const bcrypt = require('bcryptjs');   // fixed variable name (was bcryptjs in import, bcrypt in code)
 const ExcelJS = require('exceljs');
 const PDFDocument = require('pdfkit');
 const helmet = require('helmet');
 const cors = require('cors');
 
-const DB_PATH = path.join(__dirname, 'data.db');
+// --- DB SETUP ---
+const DB_PATH = path.join(__dirname, 'data', 'data.db');  // fixed path to data folder
 if (!fs.existsSync(DB_PATH)) {
   console.error('Database not found. Run: npm run init-db');
   process.exit(1);
@@ -23,18 +24,31 @@ const app = express();
 app.use(helmet());
 app.use(cors());
 app.use(bodyParser.json());
+
+// --- STATIC FILES (for PWA support) ---
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ----- AUTH (very basic) -----
+// Explicitly serve manifest and service worker (to avoid caching issues)
+app.get('/manifest.json', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'manifest.json'));
+});
+
+app.get('/service-worker.js', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'service-worker.js'));
+});
+
+// ----------------- AUTH -----------------
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
   const row = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
   if (!row) return res.status(401).json({ error: 'Invalid credentials' });
-  if (!bcrypt.compareSync(password, row.password_hash)) return res.status(401).json({ error: 'Invalid credentials' });
+  if (!bcrypt.compareSync(password, row.password_hash)) {
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
   res.json({ ok: true, username: row.username, role: row.role });
 });
 
-// ----- CHANGE CREDENTIALS -----
+// ----------------- CHANGE CREDENTIALS -----------------
 app.post('/api/change-credentials', (req, res) => {
   const { oldUsername, oldPassword, newUsername, newPassword } = req.body;
   if (!oldUsername || !oldPassword || !newUsername || !newPassword) {
@@ -55,9 +69,7 @@ app.post('/api/change-credentials', (req, res) => {
   res.json({ ok: true, message: 'Credentials updated. Please login again.' });
 });
 
-
-// ----- PARTIES -----
-// create party
+// ----------------- PARTIES -----------------
 app.post('/api/parties', (req, res) => {
   const { name, mobile, email } = req.body;
   if (!name) return res.status(400).json({ error: 'name required' });
@@ -71,7 +83,6 @@ app.post('/api/parties', (req, res) => {
   }
 });
 
-// list parties with current balance (credit - debit)
 app.get('/api/parties', (req, res) => {
   const rows = db.prepare(`
     SELECT p.id, p.name, p.mobile, p.email,
@@ -86,7 +97,6 @@ app.get('/api/parties', (req, res) => {
   res.json(rows);
 });
 
-// get party ledger (month-wise)
 app.get('/api/party/:id', (req, res) => {
   const id = req.params.id;
   const party = db.prepare('SELECT * FROM parties WHERE id = ?').get(id);
@@ -97,45 +107,36 @@ app.get('/api/party/:id', (req, res) => {
   res.json({ party, entries, balance });
 });
 
-// delete party
 app.delete('/api/party/:id', (req, res) => {
   try {
     const id = req.params.id;
-
-    // Optionally delete all entries of that party
     db.prepare("DELETE FROM entries WHERE party_id = ?").run(id);
-
     const result = db.prepare("DELETE FROM parties WHERE id = ?").run(id);
-
     if (result.changes > 0) {
       res.json({ ok: true });
     } else {
       res.status(404).json({ ok: false, error: "Party not found" });
     }
   } catch (err) {
-    console.error("Delete error:", err);
     res.status(500).json({ ok: false, error: "Failed to delete party" });
   }
 });
 
-
-// ----- ENTRIES -----
-// add entry (on save: upsert party if not exists)
+// ----------------- ENTRIES -----------------
 app.post('/api/entry', (req, res) => {
   const { date, partyName, purpose, debit, credit, reference, mobile, email } = req.body;
   if (!date || !partyName) return res.status(400).json({ error: 'date and partyName required' });
 
   const trx = db.transaction(() => {
-    // ensure party exists
     let party = db.prepare('SELECT * FROM parties WHERE name = ?').get(partyName);
     if (!party) {
       const ins = db.prepare('INSERT INTO parties (name, mobile, email) VALUES (?,?,?)');
       ins.run(partyName, mobile || null, email || null);
       party = db.prepare('SELECT * FROM parties WHERE name = ?').get(partyName);
     } else {
-      // update mobile/email if provided (optional)
       if (mobile || email) {
-        db.prepare('UPDATE parties SET mobile = COALESCE(?, mobile), email = COALESCE(?, email) WHERE id = ?').run(mobile || null, email || null, party.id);
+        db.prepare('UPDATE parties SET mobile = COALESCE(?, mobile), email = COALESCE(?, email) WHERE id = ?')
+          .run(mobile || null, email || null, party.id);
         party = db.prepare('SELECT * FROM parties WHERE id = ?').get(party.id);
       }
     }
@@ -157,7 +158,6 @@ app.post('/api/entry', (req, res) => {
   }
 });
 
-// monthly report (YYYY-MM) totals and listing
 app.get('/api/month/:month', (req, res) => {
   const month = req.params.month;
   const rows = db.prepare(`
@@ -176,7 +176,6 @@ app.get('/api/month/:month', (req, res) => {
   res.json({ month, rows, totals });
 });
 
-// get list of months with totals
 app.get('/api/months', (req, res) => {
   const rows = db.prepare(`
     SELECT substr(date,1,7) as month,
@@ -189,7 +188,7 @@ app.get('/api/months', (req, res) => {
   res.json(rows);
 });
 
-// export month CSV
+// ----------------- EXPORTS -----------------
 app.get('/api/export/month/:month/csv', async (req, res) => {
   const month = req.params.month;
   const rows = db.prepare(`
@@ -211,7 +210,6 @@ app.get('/api/export/month/:month/csv', async (req, res) => {
   res.end();
 });
 
-// export month PDF (simple)
 app.get('/api/export/month/:month/pdf', (req, res) => {
   const month = req.params.month;
   const rows = db.prepare('SELECT date, party_name, purpose, debit, credit, reference FROM entries WHERE substr(date,1,7)=? ORDER BY date').all(month);
@@ -224,8 +222,6 @@ app.get('/api/export/month/:month/pdf', (req, res) => {
 
   doc.fontSize(18).text(`Monthly Report — ${month}`, { align: 'center' });
   doc.moveDown();
-
-  // header
   doc.fontSize(10).text('Date | Party | Purpose | Debit | Credit | Reference');
   doc.moveDown(0.5);
 
@@ -236,11 +232,9 @@ app.get('/api/export/month/:month/pdf', (req, res) => {
 
   doc.moveDown();
   doc.text(`Totals — Debit: ${totals.debit}   Credit: ${totals.credit}`);
-
   doc.end();
 });
 
-// export party CSV
 app.get('/api/export/party/:id/csv', async (req, res) => {
   const id = req.params.id;
   const party = db.prepare('SELECT * FROM parties WHERE id = ?').get(id);
@@ -260,5 +254,6 @@ app.get('/api/export/party/:id/csv', async (req, res) => {
   res.end();
 });
 
+// ----------------- START SERVER -----------------
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log('Server listening on', PORT));
+app.listen(PORT, () => console.log('Server listening on http://localhost:' + PORT));

@@ -11,6 +11,15 @@
   <link rel="icon" href="icon.png" type="image/x-icon">
   <link rel="shortcut icon" href="icon.png" type="image/x-icon">
   <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
+  <!-- Manifest -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Theme color -->
+  <meta name="theme-color" content="#0078d7">
+
+  <!-- Favicon -->
+  <link rel="icon" href="favicon.png" type="image/png">
+
 
 </head>
 
@@ -147,6 +156,15 @@
     document.getElementById('logoutBtnMobile')?.addEventListener('click', logout);
   </script>
   <script src="app.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/service-worker.js")
+        .then(() => console.log("Service Worker registered"))
+        .catch((err) => console.error("SW registration failed:", err));
+    }
+  </script>
+
+
 </body>
 
 </html>
