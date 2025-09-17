@@ -11,7 +11,8 @@ const helmet = require('helmet');
 const cors = require('cors');
 
 // --- DB SETUP ---
-const DB_PATH = path.join(__dirname, 'data', 'data.db');  // fixed path to data folder
+const DB_PATH = path.join(__dirname, 'data', 'data.db');
+// fixed path to data folder
 if (!fs.existsSync(DB_PATH)) {
   console.error('Database not found. Run: npm run init-db');
   process.exit(1);
