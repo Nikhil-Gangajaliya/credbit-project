@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "init-db": "node db.js --init",
-    "postinstall": "npm rebuild bcryptjs --build-from-source"
+    "postinstall": "npm rebuild better-sqlite3 --build-from-source"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
@@ -17,5 +17,8 @@
     "express": "^4.18.2",
     "helmet": "^7.0.0",
     "pdfkit": "^0.13.0"
+  },
+  "engines": {
+    "node": "20.x"
   }
 }
