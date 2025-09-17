@@ -1,0 +1,148 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <title>Credbit — Smart Credit/Debit Ledger</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+</head>
+
+<body>
+  <header>
+    <h1>Credbit</h1>
+  </header>
+
+  <div class="layout">
+    <!-- Sidebar for desktop -->
+    <aside class="sidebar">
+      <button class="nav-btn active" data-page="entry"><i class="fas fa-pencil-alt"></i> Main Entry</button>
+      <button class="nav-btn" data-page="parties"><i class="fas fa-users"></i> Parties</button>
+      <button class="nav-btn" data-page="add"><i class="fas fa-user-plus"></i> Add Party</button>
+      <button class="nav-btn" data-page="report"><i class="fas fa-chart-line"></i> Monthly Report</button>
+      <!-- Account & Logout fixed at bottom -->
+      <div class="sidebar-bottom">
+        <button id="accountBtn">Account Settings</button>
+        <button id="logoutBtn">Logout</button>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="content">
+      <!-- Main Entry Page -->
+      <div id="page-entry" class="page active">
+        <h2>Main Entry</h2>
+        <form id="entryForm">
+          <label>Date <input type="date" id="date" required></label>
+          <label>Party Name <input id="partyName" required placeholder="Party Name"></label>
+          <label>Purpose <input id="purpose" placeholder="Note / Reference"></label>
+          <div class="row">
+            <label>Debit <input id="debit" type="number" step="0.01" ></label>
+            <label>Credit <input id="credit" type="number" step="0.01"></label>
+          </div>
+          <label>Reference <input id="reference"></label>
+          <div class="row">
+            <button type="submit">Save Entry</button>
+            <button type="button" id="clearBtn">Clear</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Parties Page -->
+      <div id="page-parties" class="page">
+        <h2>Parties (Contacts)</h2>
+        <div id="partyList"></div>
+        <div id="partyDetailsWrap"></div>
+      </div>
+
+      <!-- Add Party Page -->
+      <div id="page-add" class="page">
+        <h2>Add Party</h2>
+        <form id="partyForm">
+          <input id="pname" placeholder="name" required />
+          <input id="pmobile" placeholder="mobile" />
+          <input id="pemail" placeholder="email" />
+          <button type="submit">Add Party</button>
+        </form>
+      </div>
+
+      <!-- Monthly Report Page -->
+      <div id="page-report" class="page">
+        <h2>Monthly Report</h2>
+        <div class="row">
+          <input id="monthPicker" type="month" />
+          <button id="loadMonth">Load</button>
+          <button id="exportMonthCSV">Export CSV</button>
+          <button id="exportMonthPDF">Export PDF</button>
+        </div>
+        <div id="monthTableWrap"></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Bottom Navigation for Mobile -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-page="entry">
+      <i class="fas fa-pencil-alt"></i>
+      <span>Entry</span>
+    </button>
+    <button class="nav-btn" data-page="parties">
+      <i class="fas fa-users"></i>
+      <span>Parties</span>
+    </button>
+    <button class="nav-btn" data-page="add">
+      <i class="fas fa-user-plus"></i>
+      <span>Add</span>
+    </button>
+    <button class="nav-btn" data-page="report">
+      <i class="fas fa-chart-line"></i>
+      <span>Report</span>
+    </button>
+    <button id="accountBtnMobile">
+      <i class="fas fa-cog"></i>
+      <span>Account</span>
+    </button>
+    <button id="logoutBtnMobile">
+      <i class="fas fa-sign-out-alt"></i>
+      <span>Logout</span>
+    </button>
+  </nav>
+
+
+  <script>
+    // Redirect to login if not logged in
+    const user = localStorage.getItem('user');
+    if (!user) {
+      window.location = '/login.html';
+    }
+
+    function logout() {
+      localStorage.removeItem('user');
+      window.location = '/login.html';
+    }
+
+    // Page switching
+    const navButtons = document.querySelectorAll('.nav-btn');
+    const pages = document.querySelectorAll('.page');
+
+    navButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const page = btn.dataset.page;
+
+        pages.forEach(p => p.classList.remove('active'));
+        document.getElementById('page-' + page).classList.add('active');
+
+        navButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+
+    document.getElementById('logoutBtn')?.addEventListener('click', logout);
+    document.getElementById('logoutBtnMobile')?.addEventListener('click', logout);
+  </script>
+  <script src="app.js"></script>
+</body>
+
+</html>
