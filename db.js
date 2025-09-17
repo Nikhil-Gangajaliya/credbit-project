@@ -45,7 +45,7 @@ function init() {
   `);
 
   // create default admin if not exists
-  const bcrypt = require('bcrypt');
+  const bcryptjs = require('bcryptjs');
   const admin = db.prepare('SELECT id FROM users WHERE username=?').get('admin');
   if (!admin) {
     const hash = bcrypt.hashSync('admin123', 10);
