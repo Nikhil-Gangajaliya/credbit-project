@@ -63,7 +63,7 @@ app.post('/api/change-credentials', (req, res) => {
     return res.status(401).json({ error: 'Invalid old password' });
   }
 
-  const hash = bcrypt.hashSync(newPassword, 10);
+  const hash = bcryptjs.hashSync(newPassword, 10);
   db.prepare('UPDATE users SET username = ?, password_hash = ? WHERE id = ?')
     .run(newUsername, hash, user.id);
 
