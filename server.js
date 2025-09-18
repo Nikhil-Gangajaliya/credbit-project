@@ -1,3 +1,7 @@
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/login.html'));
+});
+
 // server.js
 const express = require('express');
 const bodyParser = require('body-parser');
